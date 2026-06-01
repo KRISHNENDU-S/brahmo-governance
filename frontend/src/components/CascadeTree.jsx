@@ -1,8 +1,7 @@
 // CascadeTree.jsx - shows knowledge nodes as cards, colour-coded by status.
-// REVIEW_REQUIRED nodes show review action buttons.
-// Receives nodes + an onReview callback from App.
+// REVIEW_REQUIRED nodes show 3 review action buttons including supersede.
+import { useState } from "react";
 
-// status -> colour + label styling
 const STATUS_STYLE = {
   ACTIVE:          { dot: "bg-green-500",  text: "text-green-700",  bg: "bg-green-50",  label: "ACTIVE" },
   REVIEW_REQUIRED: { dot: "bg-amber-500",  text: "text-amber-700",  bg: "bg-amber-50",  label: "REVIEW REQUIRED" },
@@ -14,6 +13,17 @@ const STATUS_STYLE = {
 function NodeCard({ node, onReview }) {
   const st = STATUS_STYLE[node.status] || STATUS_STYLE.ACTIVE;
   const locked = node.status === "LEGAL_HOLD";
+  const [showSupersede, setShowSupersede] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newContent, setNewContent] = useState("");
+
+  function handleSupersede() {
+    if (!newTitle.trim() || !newContent.trim()) return;
+    onReview(node.id, "supersede", newTitle, newContent);
+    setShowSupersede(false);
+    setNewTitle("");
+    setNewContent("");
+  }
 
   return (
     <div className={`border rounded-lg p-3 ${st.bg} transition-all duration-300`}>
@@ -33,8 +43,8 @@ function NodeCard({ node, onReview }) {
         </div>
       </div>
 
-      {node.status === "REVIEW_REQUIRED" && (
-        <div className="flex gap-2 mt-3">
+      {node.status === "REVIEW_REQUIRED" && !showSupersede && (
+        <div className="flex gap-2 mt-3 flex-wrap">
           <button
             onClick={() => onReview(node.id, "confirm")}
             className="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">
@@ -45,6 +55,41 @@ function NodeCard({ node, onReview }) {
             className="text-xs px-2 py-1 rounded bg-gray-500 text-white hover:bg-gray-600">
             No longer relevant
           </button>
+          <button
+            onClick={() => setShowSupersede(true)}
+            className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">
+            Supersede
+          </button>
+        </div>
+      )}
+
+      {node.status === "REVIEW_REQUIRED" && showSupersede && (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-gray-600 font-medium">Create replacement rule:</p>
+          <input
+            type="text"
+            placeholder="New title"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            className="w-full text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"/>
+          <textarea
+            placeholder="New content / updated rule"
+            value={newContent}
+            onChange={(e) => setNewContent(e.target.value)}
+            rows={2}
+            className="w-full text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"/>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSupersede}
+              className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">
+              Confirm
+            </button>
+            <button
+              onClick={() => { setShowSupersede(false); setNewTitle(""); setNewContent(""); }}
+              className="text-xs px-2 py-1 rounded bg-gray-300 text-gray-700 hover:bg-gray-400">
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -53,9 +98,8 @@ function NodeCard({ node, onReview }) {
 
 export default function CascadeTree({ nodes, onReview }) {
   if (!nodes || nodes.length === 0)
-    return <div className="text-gray-400">Loading nodes…</div>;
+    return <div className="text-gray-400">Loading nodes...</div>;
 
-  // sort: REVIEW_REQUIRED first (so the cascade effect is obvious), then by id
   const sorted = [...nodes].sort((a, b) => {
     const pr = (s) => (s === "REVIEW_REQUIRED" ? 0 : s === "LEGAL_HOLD" ? 1 : 2);
     return pr(a.status) - pr(b.status) || a.id.localeCompare(b.id);

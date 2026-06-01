@@ -45,10 +45,10 @@ export default function App() {
     setBusy(false);
   }
 
-  async function handleReview(nodeId, action) {
+  async function handleReview(nodeId, action, newTitle = null, newContent = null) {
     setBusy(true);
     try {
-      await review(nodeId, action);
+      await review(nodeId, action, "U-MEERA", "HOD", newTitle, newContent);
       setMsg(`Reviewed ${nodeId}: ${action}.`);
       await refresh();
     } catch (e) {
