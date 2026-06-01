@@ -156,14 +156,20 @@ def do_review(req: ReviewRequest):
 
 @app.post("/reset")
 def reset_demo():
-    # inline reset (mirrors reset_demo.py) so the frontend has a button
     with get_connection() as conn, conn.cursor() as cur:
-        cur.execute("UPDATE knowledge_nodes SET status='ACTIVE' WHERE status='REVIEW_REQUIRED'")
-        cur.execute("UPDATE knowledge_nodes SET status='ACTIVE', superseded_by=NULL WHERE id='N-M08'")
-        cur.execute("DELETE FROM edges WHERE source_id LIKE 'N-%-V%' OR edge_type='SUPERSEDES'")
-        cur.execute("DELETE FROM knowledge_nodes WHERE id LIKE 'N-%-V%'")
-        cur.execute("DELETE FROM audit_log WHERE action IN "
-                    "('CASCADE_TRIGGER','STATUS_CHANGE','CASCADE_SKIP','REVIEW_CONFIRMED','SUPERSEDE')")
+        # restore all demo-changed nodes to ACTIVE
+        # except the two that were seeded as non-ACTIVE (N-HELD, N-EXP)
+        cur.execute("""
+            UPDATE knowledge_nodes 
+            SET status = 'ACTIVE', superseded_by = NULL
+            WHERE id NOT IN ('N-HELD', 'N-EXP')
+        """)
+        # delete any new nodes created during demo (supersede replacements)
+        cur.execute("DELETE FROM edges WHERE source_id LIKE '%-V%' OR target_id LIKE '%-V%' OR edge_type = 'SUPERSEDES'")
+        cur.execute("UPDATE knowledge_nodes SET superseded_by = NULL WHERE superseded_by LIKE '%-V%'")
+        cur.execute("DELETE FROM knowledge_nodes WHERE id LIKE '%-V%'")
+        # clear demo audit + alerts
+        cur.execute("DELETE FROM audit_log WHERE action IN ('CASCADE_TRIGGER','STATUS_CHANGE','CASCADE_SKIP','REVIEW_CONFIRMED','SUPERSEDE')")
         cur.execute("DELETE FROM pulse_alerts")
     return {"status": "reset complete"}
 

@@ -150,5 +150,4 @@ health recomputation, notification routing, department-agnostic design).
 
 ## Demo Video
 
-<!-- add your Loom link here before submission -->
-Loom walkthrough: _link to be added_
+Loom walkthrough: https://www.loom.com/share/453a1d14e54e468087084e90be4e3ac7
