@@ -6,8 +6,11 @@ import CascadeTree from "./components/CascadeTree";
 import PulseAlerts from "./components/PulseAlerts";
 import AuditTimeline from "./components/AuditTimeline";
 
-// the node we supersede in the main demo (Sepsis v2)
-const DEMO_SOURCE = "N-M08";
+// Nodes that have rules built on them (worth cascading from).
+const CASCADE_ROOTS = [
+  { id: "N-M08", label: "N-M08 - Sepsis Protocol v2 (Medicine)" },
+  { id: "N-O01", label: "N-O01 - DVT Prophylaxis Protocol (Ortho)" },
+];
 
 export default function App() {
   const [nodes, setNodes] = useState([]);
@@ -16,8 +19,8 @@ export default function App() {
   const [audit, setAudit] = useState([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [selected, setSelected] = useState("N-M08");
 
-  // fetch everything from the backend
   async function refresh() {
     const [n, h, a, au] = await Promise.all([getNodes(), getHealth(), getAlerts(), getAudit()]);
     setNodes(n);
@@ -26,15 +29,14 @@ export default function App() {
     setAudit(au);
   }
 
-  // run once on first load
   useEffect(() => { refresh(); }, []);
 
   async function handleCascade() {
     setBusy(true);
     setMsg("");
     try {
-      const res = await runCascade(DEMO_SOURCE);
-      setMsg(`Cascade: ${res.cascade.affected.length} nodes flagged, ` +
+      const res = await runCascade(selected);
+      setMsg(`Cascade from ${selected}: ${res.cascade.affected.length} nodes flagged, ` +
              `${res.cascade.skipped.length} skipped, ${res.alerts_created} alerts sent.`);
       await refresh();
     } catch (e) {
@@ -65,30 +67,36 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      {/* header */}
       <div className="max-w-7xl mx-auto mb-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-800">
               BRAHMO Governance Engine
             </h1>
             <p className="text-sm text-gray-500">
-              Cascade Invalidation · Health Score · Pulse Notifications
+              Cascade Invalidation - Health Score - Pulse Notifications
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            <select
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+              disabled={busy}
+              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 disabled:opacity-50">
+              {CASCADE_ROOTS.map((n) => (
+                <option key={n.id} value={n.id}>{n.label}</option>
+              ))}
+            </select>
             <button
               onClick={handleCascade}
               disabled={busy}
-              className="px-4 py-2 rounded-lg bg-red-600 text-white font-medium
-                         hover:bg-red-700 disabled:opacity-50">
-              Supersede Sepsis v2 → Cascade
+              className="px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-50">
+              Supersede & Cascade
             </button>
             <button
               onClick={handleReset}
               disabled={busy}
-              className="px-4 py-2 rounded-lg bg-gray-700 text-white font-medium
-                         hover:bg-gray-800 disabled:opacity-50">
+              className="px-4 py-2 rounded-lg bg-gray-700 text-white font-medium hover:bg-gray-800 disabled:opacity-50">
               Reset Demo
             </button>
           </div>
@@ -100,7 +108,6 @@ export default function App() {
         )}
       </div>
 
-      {/* four-column layout */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1">
           <HealthDashboard health={health} />

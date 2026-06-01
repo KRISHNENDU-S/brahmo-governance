@@ -139,6 +139,9 @@ brahmo-governance/
 ├── data_sources.md
 └── README.md
 ```
+## Innovation
+- Deferred health score — shows a pending badge instead of a misleading drop immediately after cascade. Score recomputes on first review or after 24h.
+- Notification aggregation — one alert per doctor per cascade (not one per node), grouped by cascade_id. Prevents notification fatigue.
 
 See `docs/architecture.md` for design decisions (cascade bounding, deferred
 health recomputation, notification routing, department-agnostic design).
